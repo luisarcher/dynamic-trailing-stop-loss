@@ -23,7 +23,7 @@ class Config:
         """
         if config_filename is None:
             config_filename = self.DEFAULT_CONFIG_FILENAME
-        self.config = self.load_config(config_filename)
+        self.config = self.load_config(project_root_path + '/config/' + config_filename)
 
     def load_config(self, config_filename):
         """Load the configuration from a YAML file.

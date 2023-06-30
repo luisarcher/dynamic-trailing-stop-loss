@@ -9,7 +9,7 @@ class ConfigTestSuite(unittest.TestCase):
     """Config test cases."""
 
     def test_kv(self):
-        config = Config()
+        config = Config('config.example.yml')
         api_id = config.get_config_value("telegram_api").get("api_id")
         assert api_id == "api_id_example"
 
