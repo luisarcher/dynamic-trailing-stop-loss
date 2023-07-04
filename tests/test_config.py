@@ -13,6 +13,9 @@ class ConfigTestSuite(unittest.TestCase):
         api_id = config.get_config_value("telegram_api").get("api_id")
         assert api_id == "api_id_example"
 
+    def test_get_config_instance(self):
+        assert Config.get_instance().get_config_value("telegram_api").get("api_id") != None
+
 
 if __name__ == '__main__':
     unittest.main()

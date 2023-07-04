@@ -1,3 +1,5 @@
+import logging
+import time
 import yaml
 import os
 import sys
@@ -12,7 +14,16 @@ sys.path.insert(1, os.path.join(project_root_path, 'config'))
 class Config:
     """Class representing a configuration object."""
 
-    DEFAULT_CONFIG_FILENAME = project_root_path + '/config/config.yml'
+    DEFAULT_CONFIG_FILENAME = 'config.yml'
+    __instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Ensures the class has only one instance by returning the existing instance if it exists or creating a new one.
+        """
+        if cls.__instance is None:
+            cls.__instance = super(Config, cls).__new__(cls)
+        return cls.__instance
 
     def __init__(self, config_filename=None):
         """Initialize the Config object.
@@ -24,6 +35,23 @@ class Config:
         if config_filename is None:
             config_filename = self.DEFAULT_CONFIG_FILENAME
         self.config = self.load_config(project_root_path + '/config/' + config_filename)
+
+        # Sets up the Logger
+        logging.getLogger().setLevel('INFO')
+        logging.basicConfig(filename=project_root_path + '/log/' + time.strftime("%Y_%m_%d-%H_%M_%S") + '.log',
+                            level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s',
+                            filemode="w")
+        
+        self.__instance = self
+        
+    @staticmethod
+    def get_instance():
+        """
+        Static method to get the instance of the class.
+        """
+        if Config.__instance is None:
+            Config(Config.DEFAULT_CONFIG_FILENAME)
+        return Config.__instance
 
     def load_config(self, config_filename):
         """Load the configuration from a YAML file.

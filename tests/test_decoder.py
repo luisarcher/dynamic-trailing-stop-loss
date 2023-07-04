@@ -6,6 +6,8 @@ import unittest
 
 import os
 import sys
+
+from dtsl.models.signal import Signal
 project_root_path = os.path.normpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 )
@@ -24,10 +26,11 @@ class DecoderTestSuite(unittest.TestCase):
         decoder = Decoder()
 
         # Call the decode() method with the signal message
-        signal = decoder.decode(signal_message)
+        signal: Signal = decoder.decode(signal_message)
 
         # Perform your assertions based on the expected results
         self.assertEqual(signal.trading_pair, 'BTC/USDT')
+        self.assertEqual(signal.ticker, 'BTCUSDT')
         self.assertEqual(signal.trade_type, 'SHORT')
 
 
