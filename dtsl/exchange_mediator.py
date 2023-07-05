@@ -68,8 +68,9 @@ class ExchangeMediator:
                 entry_price = float(position['entryPrice'])
                 mark_price = float(position['markPrice'])
                 unrealized_pnl = float(position['unRealizedProfit'])
+                side = position['positionSide']
 
-                trade.update_position(position_size, leverage, entry_price, mark_price, unrealized_pnl)
+                trade.update_position(position_size, leverage, entry_price, mark_price, unrealized_pnl, side)
 
                 # Check if position amount is zero and add trade to removal list
                 if position_size == 0.0:

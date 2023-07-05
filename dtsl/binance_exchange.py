@@ -60,25 +60,37 @@ class BinanceExchange:
             side=side,
             type="STOP_MARKET",
             quantity=quantity,
+            stopPrice=stop_price,
+            closePosition=True
+        )
+        return order
+    
+    def edit_stop_loss_order(self, symbol: str, order_id: int, stop_price: float) -> dict:
+        order = self.client.futures_create_order(
+            symbol=symbol,
+            orderId=order_id,
             stopPrice=stop_price
         )
         return order
     
     def place_limit_tp_order(self, pair: str, side: str, quantity: float, price: float) -> dict:
-        return self.place_limit_order(pair, side, quantity, price, True)
+        return self.place_limit_order(pair, side, quantity, price=price, reduce=True)
     
-    def place_trailing_stop_order(self, pair: str, side: str, quantity: float, price: float) -> dict:
+    def place_trailing_stop_order(self, pair: str, side: str, quantity: float, price: float, perc: float) -> dict:
         order = self.client.futures_create_order(
             symbol=pair,
             side=side,
-            type="LIMIT",
+            type="TRAILING_STOP_MARKET",
             quantity=quantity,
             price=price,
             timeInForce="GTC",
-            reduceOnly=True
+            reduceOnly=True,
+            callbackRate=perc
         )
         return order
 
     def get_current_positions(self) -> dict:
         return self.client.futures_position_information()
+    
+
 

@@ -37,11 +37,23 @@ class Config:
         self.config = self.load_config(project_root_path + '/config/' + config_filename)
 
         # Sets up the Logger
-        logging.getLogger().setLevel('INFO')
+        logger = logging.getLogger()
+        logger.setLevel('INFO')
         logging.basicConfig(filename=project_root_path + '/log/' + time.strftime("%Y_%m_%d-%H_%M_%S") + '.log',
                             level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s',
                             filemode="w")
         
+        # Create console handler and set its level to INFO
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+
+        # Create formatter and add it to the console handler
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        console_handler.setFormatter(formatter)
+
+        # Add the console handler to the logger
+        logger.addHandler(console_handler)
+
         self.__instance = self
         
     @staticmethod
