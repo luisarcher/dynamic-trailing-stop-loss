@@ -75,30 +75,34 @@ class Trade:
 
     def update_stop_loss_order(self):
 
-        side = Trade.get_buy_sell_position_side(Trade.get_counter_LS_side(self.side_LS))
-        if self.stop_loss_order is None:
-            # Get initial SL price
-            sl_price = self.strategy.get_sl_price(side, self.entry_price)
-            logger.info(f'[{self.symbol}] Placing initial SL order at: price: {sl_price}')
-        else:
-            sl_price = self.strategy.update_sl_price(side, self.entry_price, self.mark_price)
-            if sl_price == 0.0:
-                # SL order does not need to be updated
-                return None
+        try:
+            side = Trade.get_buy_sell_position_side(Trade.get_counter_LS_side(self.side_LS))
+            if self.stop_loss_order is None:
+                # Get initial SL price
+                sl_price = self.strategy.get_sl_price(side, self.entry_price)
+                logger.info(f'[{self.symbol}] Placing initial SL order at: price: {sl_price}')
             else:
-                #input('DEBUG: about to cancel SL order, continue?')
-                logger.info(f'[{self.symbol}] Cancelling existing SL order...')
-                self.exchange.cancel_order(self.symbol, self.stop_loss_order['orderId'])
-                logger.info(f'[{self.symbol}] Updating SL order to: price: {sl_price}')
+                sl_price = self.strategy.update_sl_price(side, self.entry_price, self.mark_price)
+                if sl_price == 0.0:
+                    # SL order does not need to be updated
+                    return None
+                else:
+                    #input('DEBUG: about to cancel SL order, continue?')
+                    logger.info(f'[{self.symbol}] Cancelling existing SL order...')
+                    self.exchange.cancel_order(self.symbol, self.stop_loss_order['orderId'])
+                    logger.info(f'[{self.symbol}] Updating SL order to: price: {sl_price}')
 
-        #input('DEBUG: about to place SL order, continue?')
-        # Place SL order
-        self.stop_loss_order = self.exchange.place_stop_loss_order(
-            self.symbol,
-            side,
-            self.position_size,
-            sl_price
-        )
+            #input('DEBUG: about to place SL order, continue?')
+            # Place SL order
+            self.stop_loss_order = self.exchange.place_stop_loss_order(
+                self.symbol,
+                side,
+                self.position_size,
+                sl_price
+            )
+        except Exception as e:
+            logger.error(f'[ERROR] Exception updating stop loss')
+            logger.exception(e)
         
 
     def __repr__(self) -> str:
