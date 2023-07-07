@@ -21,7 +21,7 @@ class ExchangeMediatorTestSuite(unittest.TestCase):
         self.exchange_mediator.start()
 
     def test_enter_trade(self):
-        signal: Signal = Signal('MATIC/USDT', 'LONG')
+        signal: Signal = Signal('RUNE/USDT', 'LONG')
         trade = self.exchange_mediator.enter_trade(signal)
         assert trade is True
 

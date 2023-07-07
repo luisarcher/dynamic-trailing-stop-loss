@@ -38,14 +38,14 @@ class Config:
 
         # Sets up the Logger
         logger = logging.getLogger()
-        logger.setLevel('INFO')
+        logger.setLevel(logging.DEBUG)
         logging.basicConfig(filename=project_root_path + '/log/' + time.strftime("%Y_%m_%d-%H_%M_%S") + '.log',
                             level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s',
                             filemode="w")
         
         # Create console handler and set its level to INFO
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.DEBUG)
 
         # Create formatter and add it to the console handler
         formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")

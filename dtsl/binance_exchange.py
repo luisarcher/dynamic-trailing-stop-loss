@@ -1,3 +1,4 @@
+import logging
 from binance.client import Client
 from dtsl.config import Config
 from dateutil import parser
@@ -64,15 +65,7 @@ class BinanceExchange:
             closePosition=True
         )
         return order
-    
-    def edit_stop_loss_order(self, symbol: str, order_id: int, stop_price: float) -> dict:
-        order = self.client.futures_create_order(
-            symbol=symbol,
-            orderId=order_id,
-            stopPrice=stop_price
-        )
-        return order
-    
+        
     def place_limit_tp_order(self, pair: str, side: str, quantity: float, price: float) -> dict:
         return self.place_limit_order(pair, side, quantity, price=price, reduce=True)
     
@@ -92,5 +85,9 @@ class BinanceExchange:
     def get_current_positions(self) -> dict:
         return self.client.futures_position_information()
     
+    def cancel_order(self, symbol: str, order_id: str) -> bool:
+        result = self.client.futures_cancel_order(symbol=symbol, orderId=order_id)
+        logging.debug(result)
+        return result['status'] == 'CANCELED'
 
 

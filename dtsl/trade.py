@@ -3,6 +3,7 @@ import math
 
 from dtsl.models.signal import Signal
 from dtsl.config import Config
+from dtsl.strategy import Strategy
 
 
 class Trade:
@@ -15,6 +16,12 @@ class Trade:
         self.exchange = exchange
         self.symbol = signal.ticker
         self.side_LS = signal.trade_type
+        self.lot_size_filter = next(
+            (filter for filter in self.exchange.exchange_info['symbols'] \
+                 if filter['symbol'] == self.symbol), None)
+        
+        self.strategy = Strategy(self.lot_size_filter)
+
         self.position_size = 0.0
         self.leverage = int(self.config.get_config_value("binance_api").get("leverage"))  # Retrieve leverage from config
         
@@ -30,10 +37,6 @@ class Trade:
         self.tp_order = None
         self.stop_loss_order = None
 
-        self.lot_size_filter = next(
-            (filter for filter in self.exchange.exchange_info['symbols'] \
-                 if filter['symbol'] == self.symbol), None)
-
         if not importing:
             self.init_trade()
 
@@ -48,33 +51,50 @@ class Trade:
         balance = self.exchange.get_wallet_balance() * 0.25
         price = self.exchange.client.futures_symbol_ticker(symbol=self.symbol)['price']
         self.entry_size = self.calculate_entry_size(self.symbol, self.leverage, balance, price)
+
+        # Also update strategy params
+        self.strategy.max_price = price
+
         # Place the market order
         executed_order = self.exchange.place_market_order(self.symbol, self.get_buy_sell_position_side(self.side_LS), self.entry_size)
         return executed_order
         
     def place_tp_limit_order(self):
         # Place TP limit order
-        tp_order_price = self.entry_price * (1 + 0.05)  # Calculate TP order price with 5% increase
-        tp_order_price = Trade.round_to_tick_size(tp_order_price, self.lot_size_filter)  # Adjust price based on lot size filter
         logging.info(f'Placing TP: Current position side: {self.side_LS}')
+        side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
         self.tp_order = self.exchange.place_limit_tp_order(
             self.symbol,
-            self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS)),
+            side,
             self.position_size,
-            tp_order_price
+            self.strategy.get_tp_price(side, self.entry_price)
         )
 
     def update_stop_loss_order(self):
+
+        if self.stop_loss_order is None:
+            # Get initial SL price
+            sl_price = self.strategy.get_sl_price(side, self.entry_price)
+        else:
+            sl_price = self.strategy.update_sl_price(side, self.entry_price, self.mark_price)
+            if sl_price == 0.0:
+                # SL order does not need to be updated
+                return None
+            else:
+                input('DEBUG: about to cancel SL order, continue?')
+                self.exchange.cancel_order(self.symbol, self.stop_loss_order['orderId'])
+
+        input('DEBUG: about to place SL order, continue?')
         # Place SL order
-        sl_order_price = self.entry_price * (1 - 0.025)  # Calculate SL order price with 2.5% margin
-        sl_order_price = Trade.round_to_tick_size(sl_order_price, self.lot_size_filter)  # Adjust price based on lot size filter
         logging.info(f'Placing SL: Current position side: {self.side_LS}')
+        side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
         self.stop_loss_order = self.exchange.place_stop_loss_order(
             self.symbol,
-            self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS)),
+            side,
             self.position_size,
-            sl_order_price
+            sl_price
         )
+        
 
     def __repr__(self) -> str:
         return f'{self.symbol}: qty: {self.position_size}'
@@ -103,6 +123,8 @@ class Trade:
 
         if self.tp_order is None:
             self.place_tp_limit_order()
+
+        self.update_stop_loss_order()
 
     def update_max_min_mark_price(self, mark_price):
         if mark_price > self.max_mark_price:
@@ -144,11 +166,6 @@ class Trade:
         :return: the rounded down number.
         """
         return math.floor(non_rounded_entry_size / step) * step
-    
-    @staticmethod
-    def round_to_tick_size(price: float, lot_size_filter: dict) -> float:
-        tick_size = float(lot_size_filter['filters'][0]['tickSize'])
-        return round(price / tick_size) * tick_size
     
     @staticmethod
     def determine_position_side(position_side: str, position_amount: float) -> str:

@@ -8,5 +8,6 @@ An experiment on trading crypto using trading stop loss method.
 - OK -- Add a method on Binance exchange to place a stop loss order
 - OK -- Sync leverage
 
-Stop loss update
+- TP and SL levels should be determined according to the side
+- Stop loss update
 - Strategy TSL
