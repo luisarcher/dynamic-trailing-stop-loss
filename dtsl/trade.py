@@ -6,6 +6,9 @@ from dtsl.config import Config
 from dtsl.strategy import Strategy
 
 
+logger=logging.getLogger(__name__)
+
+
 class Trade:
 
     from dtsl.binance_exchange import BinanceExchange
@@ -19,6 +22,7 @@ class Trade:
         self.lot_size_filter = next(
             (filter for filter in self.exchange.exchange_info['symbols'] \
                  if filter['symbol'] == self.symbol), None)
+        print(self.lot_size_filter)
         
         self.strategy = Strategy(self.lot_size_filter)
 
@@ -47,47 +51,52 @@ class Trade:
         self.entry_order = self.execute_market_order()  # Place market order upon object creation
 
     def execute_market_order(self):
+        logger.info(f'[{self.symbol}] Entering trade...')
         # Obtain the necessary data for placing a market order
         balance = self.exchange.get_wallet_balance() * 0.25
         price = self.exchange.client.futures_symbol_ticker(symbol=self.symbol)['price']
         self.entry_size = self.calculate_entry_size(self.symbol, self.leverage, balance, price)
 
         # Also update strategy params
-        self.strategy.max_price = price
+        self.strategy.max_price = float(price)
 
         # Place the market order
+        logger.info(f'[{self.symbol}] Market order: price: {price}, side: {self.side_LS}')
         executed_order = self.exchange.place_market_order(self.symbol, self.get_buy_sell_position_side(self.side_LS), self.entry_size)
         return executed_order
         
     def place_tp_limit_order(self):
         # Place TP limit order
-        logging.info(f'Placing TP: Current position side: {self.side_LS}')
         side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
+        price = self.strategy.get_tp_price(side, self.entry_price)
+        logger.info(f'[{self.symbol}] TP order at: price: {price}')
         self.tp_order = self.exchange.place_limit_tp_order(
             self.symbol,
             side,
             self.position_size,
-            self.strategy.get_tp_price(side, self.entry_price)
+            price
         )
 
     def update_stop_loss_order(self):
 
+        side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
         if self.stop_loss_order is None:
             # Get initial SL price
             sl_price = self.strategy.get_sl_price(side, self.entry_price)
+            logger.info(f'[{self.symbol}] Placing initial SL order at: price: {sl_price}')
         else:
             sl_price = self.strategy.update_sl_price(side, self.entry_price, self.mark_price)
             if sl_price == 0.0:
                 # SL order does not need to be updated
                 return None
             else:
-                input('DEBUG: about to cancel SL order, continue?')
+                #input('DEBUG: about to cancel SL order, continue?')
+                logger.info(f'[{self.symbol}] Cancelling existing SL order...')
                 self.exchange.cancel_order(self.symbol, self.stop_loss_order['orderId'])
+                logger.info(f'[{self.symbol}] Updating SL order to: price: {sl_price}')
 
-        input('DEBUG: about to place SL order, continue?')
+        #input('DEBUG: about to place SL order, continue?')
         # Place SL order
-        logging.info(f'Placing SL: Current position side: {self.side_LS}')
-        side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
         self.stop_loss_order = self.exchange.place_stop_loss_order(
             self.symbol,
             side,

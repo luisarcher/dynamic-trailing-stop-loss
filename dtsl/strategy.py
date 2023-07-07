@@ -73,10 +73,10 @@ class Strategy:
         """
         if side.upper() == 'BUY':
             # Calculate stop loss price for SHORT position
-            order_price = self.drag_long_stop_loss(entry_price, current_price)
+            order_price = self.drag_long_stop_loss(float(entry_price), float(current_price))
         elif side.upper() == 'SELL':
             # Calculate stop loss price for LONG position
-            order_price = self.drag_long_stop_loss(entry_price, current_price)
+            order_price = self.drag_long_stop_loss(float(entry_price), float(current_price))
         
         # To be ignored, we are not dragging the SL
         if order_price == 0.0:
@@ -90,7 +90,17 @@ class Strategy:
     @staticmethod
     def round_to_tick_size(price: float, lot_size_filter: dict) -> float:
         tick_size = float(lot_size_filter['filters'][0]['tickSize'])
-        return round(price / tick_size) * tick_size
+        max_precision = lot_size_filter['pricePrecision']
+
+        # Calculate the scale factor based on the maximum precision
+        scale_factor = 10 ** max_precision
+
+        # Round the price to the nearest tick size and adjust the precision
+        rounded_price = round(price / tick_size) * tick_size
+        adjusted_price = round(rounded_price * scale_factor) / scale_factor
+
+        return adjusted_price
+
     
 
     def drag_long_stop_loss(self, entry_price: float, current_price: float) -> float:

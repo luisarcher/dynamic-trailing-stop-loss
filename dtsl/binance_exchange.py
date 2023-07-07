@@ -4,6 +4,9 @@ from dtsl.config import Config
 from dateutil import parser
 from datetime import timedelta
 
+logger=logging.getLogger(__name__)
+
+
 class BinanceExchange:
 
     def __init__(self) -> None:
@@ -34,37 +37,50 @@ class BinanceExchange:
                 return float(asset['availableBalance'])
             
     def place_market_order(self, pair: str, side: str, quantity: float) -> dict:
-        order = self.client.futures_create_order(
-            symbol=pair,
-            side=side,
-            type="MARKET",
-            quantity=quantity
-        )
-        return order
+        try:
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=side,
+                type="MARKET",
+                quantity=quantity
+            )
+            return order
+        except Exception as e:
+            logger.error(f'[ERROR] [{pair}] Exception while entering trade. Side: {side}')
+            logger.exception(e)
     
     def place_limit_order(self, pair: str, side: str, quantity: float, price: float, reduce: bool = False
                           ) -> dict:
-        order = self.client.futures_create_order(
-            symbol=pair,
-            side=side,
-            type="LIMIT",
-            quantity=quantity,
-            price=price,
-            timeInForce="GTC",
-            reduceOnly=reduce
-        )
-        return order
+        try:
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=side,
+                type="LIMIT",
+                quantity=quantity,
+                price=price,
+                timeInForce="GTC",
+                reduceOnly=reduce
+            )
+            return order
+        except Exception as e:
+            logger.error(f'[ERROR] [{pair}] Exception while placing TP limit order')
+            logger.exception(e)
+            
     
     def place_stop_loss_order(self, pair: str, side: str, quantity: float, stop_price: float) -> dict:
-        order = self.client.futures_create_order(
-            symbol=pair,
-            side=side,
-            type="STOP_MARKET",
-            quantity=quantity,
-            stopPrice=stop_price,
-            closePosition=True
-        )
-        return order
+        try:
+            order = self.client.futures_create_order(
+                symbol=pair,
+                side=side,
+                type="STOP_MARKET",
+                quantity=quantity,
+                stopPrice=stop_price,
+                closePosition=True
+            )
+            return order
+        except Exception as e:
+            logger.error(f'[ERROR] [{pair}] Exception while placing SL order')
+            logger.exception(e)
         
     def place_limit_tp_order(self, pair: str, side: str, quantity: float, price: float) -> dict:
         return self.place_limit_order(pair, side, quantity, price=price, reduce=True)
@@ -86,8 +102,12 @@ class BinanceExchange:
         return self.client.futures_position_information()
     
     def cancel_order(self, symbol: str, order_id: str) -> bool:
-        result = self.client.futures_cancel_order(symbol=symbol, orderId=order_id)
-        logging.debug(result)
-        return result['status'] == 'CANCELED'
+        try:
+            result = self.client.futures_cancel_order(symbol=symbol, orderId=order_id)
+            logging.debug(result)
+            return result['status'] == 'CANCELED'
+        except Exception as e:
+            logger.error(f'[ERROR] [{symbol}] Exception while cancelling order')
+            logger.exception(e)
 
 
