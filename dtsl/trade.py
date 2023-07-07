@@ -22,7 +22,6 @@ class Trade:
         self.lot_size_filter = next(
             (filter for filter in self.exchange.exchange_info['symbols'] \
                  if filter['symbol'] == self.symbol), None)
-        print(self.lot_size_filter)
         
         self.strategy = Strategy(self.lot_size_filter)
 
@@ -32,9 +31,6 @@ class Trade:
         # Position data from updates
         self.entry_price = 0.0
         self.mark_price = 0.0
-        self.unrealized_pnl = 0.0
-        self.max_mark_price = float('-inf')
-        self.min_mark_price = float('inf')
 
         # Order ids
         self.entry_order = None
@@ -62,12 +58,12 @@ class Trade:
 
         # Place the market order
         logger.info(f'[{self.symbol}] Market order: price: {price}, side: {self.side_LS}')
-        executed_order = self.exchange.place_market_order(self.symbol, self.get_buy_sell_position_side(self.side_LS), self.entry_size)
+        executed_order = self.exchange.place_market_order(self.symbol, Trade.get_buy_sell_position_side(self.side_LS), self.entry_size)
         return executed_order
         
     def place_tp_limit_order(self):
         # Place TP limit order
-        side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
+        side = Trade.get_buy_sell_position_side(Trade.get_counter_LS_side(self.side_LS))
         price = self.strategy.get_tp_price(side, self.entry_price)
         logger.info(f'[{self.symbol}] TP order at: price: {price}')
         self.tp_order = self.exchange.place_limit_tp_order(
@@ -79,7 +75,7 @@ class Trade:
 
     def update_stop_loss_order(self):
 
-        side = self.get_buy_sell_position_side(self.get_counter_LS_side(self.side_LS))
+        side = Trade.get_buy_sell_position_side(Trade.get_counter_LS_side(self.side_LS))
         if self.stop_loss_order is None:
             # Get initial SL price
             sl_price = self.strategy.get_sl_price(side, self.entry_price)
@@ -106,16 +102,18 @@ class Trade:
         
 
     def __repr__(self) -> str:
-        return f'{self.symbol}: qty: {self.position_size}'
+        return f'{self.symbol}'
     
-    def get_buy_sell_position_side(self, long_short_side: str):
+    @staticmethod
+    def get_buy_sell_position_side(long_short_side: str):
         # Parse trade type
         if 'LONG' in long_short_side.upper():
             return 'BUY'
         elif 'SHORT' in long_short_side.upper():
             return 'SELL'
-        
-    def get_counter_LS_side(self, side_ls: str):
+    
+    @staticmethod
+    def get_counter_LS_side(side_ls: str):
         if 'LONG' in side_ls.upper():
             return 'SHORT'
         elif 'SHORT' in side_ls.upper():
@@ -128,18 +126,11 @@ class Trade:
         self.mark_price = mark_price
         self.unrealized_pnl = unrealized_pnl
         self.side_LS = Trade.determine_position_side(position_side, position_size)
-        self.update_max_min_mark_price(mark_price)
 
         if self.tp_order is None:
             self.place_tp_limit_order()
 
         self.update_stop_loss_order()
-
-    def update_max_min_mark_price(self, mark_price):
-        if mark_price > self.max_mark_price:
-            self.max_mark_price = mark_price
-        if mark_price < self.min_mark_price:
-            self.min_mark_price = mark_price
 
     def get_symbol(self):
         return self.symbol

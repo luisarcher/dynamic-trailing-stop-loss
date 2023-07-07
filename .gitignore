@@ -1,5 +1,7 @@
 # Custom
 config.yml
+session_read.session
+assets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -104,10 +104,12 @@ class BinanceExchange:
     def cancel_order(self, symbol: str, order_id: str) -> bool:
         try:
             result = self.client.futures_cancel_order(symbol=symbol, orderId=order_id)
-            logging.debug(result)
+            logger.debug(result)
             return result['status'] == 'CANCELED'
         except Exception as e:
             logger.error(f'[ERROR] [{symbol}] Exception while cancelling order')
             logger.exception(e)
 
+    def get_open_orders(self, symbol: str):
+        return self.client.futures_get_open_orders(symbol=symbol)
 

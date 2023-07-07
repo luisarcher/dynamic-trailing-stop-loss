@@ -14,6 +14,8 @@ class Decoder:
     def decode(message: str) -> Signal:
         try:
             # Parse trading pair
+            trading_pair = ""
+            trade_type = ""
             trading_pair_regex = re.compile(r"[A-Za-z]{1,5}\s*/\s*USDT")
             trading_pair_match = trading_pair_regex.search(message)
             if trading_pair_match:
@@ -29,6 +31,9 @@ class Decoder:
                 or "short" in message:
                 trade_type = "SHORT"
 
+            if trading_pair == "" \
+                or trade_type == "":
+                return None
             signal = Signal(trading_pair, trade_type)
             return signal
         except Exception as e:

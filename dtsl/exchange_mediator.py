@@ -1,8 +1,11 @@
+import logging
 import threading
 import time
 from dtsl.binance_exchange import BinanceExchange
 from dtsl.models.signal import Signal
 from dtsl.trade import Trade
+
+logger=logging.getLogger(__name__)
 
 
 class ExchangeMediator:
@@ -19,11 +22,40 @@ class ExchangeMediator:
         positions = self.binance_exchange.get_current_positions()
         for position in positions:
             symbol = position['symbol']
+            position_side = position['positionSide']
             position_size = float(position['positionAmt'])
             if position_size != 0.0:
-                trade = Trade(Signal(symbol, position['positionSide']), self.binance_exchange, True)
+                print(position)
+                trade = Trade(Signal(symbol, Trade.determine_position_side(position_side, position_size)), self.binance_exchange, True)
+                trade.entry_price = float(position['entryPrice'])
+                trade.mark_price  = float(position['markPrice'])
+                self.add_existing_open_orders(trade)
                 self.trades.append(trade)
         print(f'Imported trades: {self.trades}')
+
+    def add_existing_open_orders(self, trade_obj: Trade):
+        # We are looking for SELL orders if we are longing and BUY orders if we are shorting
+        counter_side = Trade.get_buy_sell_position_side(Trade.get_counter_LS_side(trade_obj.side_LS))
+        orders = self.binance_exchange.get_open_orders(trade_obj.symbol)
+        logger.info('Seeking existing TP and SL orders...')
+        #print(counter_side)
+        #print(orders)
+
+        # Check if a take profit limit order exists and store it
+        tp_order = next((order for order in orders if order['type'] == 'LIMIT' and order['side'] == counter_side), None)
+        if tp_order:
+            logger.info(f'Found existing TP limit order for symbol: {trade_obj.symbol}')
+            trade_obj.tp_order = tp_order
+        else:
+            logger.warning(f'Could not find any existing TP limit order for symbol: {trade_obj.symbol}')
+
+        # Check if a STOP_MARKET order exists and store it
+        stop_market_order = next((order for order in orders if order['type'] == 'STOP_MARKET'), None)
+        if stop_market_order:
+            logger.info(f'Found existing SL order for symbol: {trade_obj.symbol}')
+            trade_obj.stop_loss_order = stop_market_order
+        else:
+            logger.warning(f'Could not find any existing SL order for symbol: {trade_obj.symbol}')
 
     def start(self):
         if not self.is_running:
@@ -54,7 +86,7 @@ class ExchangeMediator:
                 time.sleep(8)
             positions = self.binance_exchange.get_current_positions()
             self.update_trades(positions)
-            time.sleep(0.25)
+            time.sleep(8)
 
     def update_trades(self, positions):
         trades_to_remove = []  # List to hold trades to be removed
