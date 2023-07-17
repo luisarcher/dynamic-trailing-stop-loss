@@ -15,6 +15,7 @@ class Trade:
     def __init__(self, signal: Signal, exchange: BinanceExchange, importing: bool = False):
 
         self.config = Config()
+        self.config_place_tp_order = self.config.get_config_value("strategy").get("place_tp_order")
         
         self.exchange = exchange
         self.symbol = signal.ticker
@@ -44,12 +45,12 @@ class Trade:
         # Set trading leverage according to configuration
         self.set_leverage(self.leverage)
         # Place market order
-        self.entry_order = self.execute_market_order()  # Place market order upon object creation
+        self.entry_order = self.execute_market_order()
 
     def execute_market_order(self):
         logger.info(f'[{self.symbol}] Entering trade...')
         # Obtain the necessary data for placing a market order
-        balance = self.exchange.get_wallet_balance() * 0.25
+        balance = self.exchange.get_wallet_balance() * 0.30
         price = self.exchange.client.futures_symbol_ticker(symbol=self.symbol)['price']
         self.entry_size = self.calculate_entry_size(self.symbol, self.leverage, balance, price)
 
@@ -65,6 +66,8 @@ class Trade:
         # Place TP limit order
         side = Trade.get_buy_sell_position_side(Trade.get_counter_LS_side(self.side_LS))
         price = self.strategy.get_tp_price(side, self.entry_price)
+        if price == 0.0:
+            return
         logger.info(f'[{self.symbol}] TP order at: price: {price}')
         self.tp_order = self.exchange.place_limit_tp_order(
             self.symbol,
@@ -108,6 +111,7 @@ class Trade:
     def __repr__(self) -> str:
         return f'{self.symbol}'
     
+    
     @staticmethod
     def get_buy_sell_position_side(long_short_side: str):
         # Parse trade type
@@ -116,6 +120,7 @@ class Trade:
         elif 'SHORT' in long_short_side.upper():
             return 'SELL'
     
+
     @staticmethod
     def get_counter_LS_side(side_ls: str):
         if 'LONG' in side_ls.upper():
@@ -131,7 +136,10 @@ class Trade:
         self.unrealized_pnl = unrealized_pnl
         self.side_LS = Trade.determine_position_side(position_side, position_size)
 
-        if self.tp_order is None:
+        if position_size == 0.0: 
+            return
+        
+        if self.tp_order is None and self.config_place_tp_order:
             self.place_tp_limit_order()
 
         self.update_stop_loss_order()

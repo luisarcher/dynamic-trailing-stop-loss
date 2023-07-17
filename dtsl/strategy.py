@@ -12,12 +12,13 @@ class Strategy:
         self.conf_tp_perc = 0.04 # 5%
         self.conf_sl_perc = 0.02 # 2.5%
         #self.conf_min_tsl = 0.0025
+        self.conf_sl_min_gap = 0.0035
 
         # Runtime state values
         self.previous_sl_price = 0.0
         self.max_price = 0.0
 
-    def get_tp_price(self, side: str, entry_price: float):
+    def get_tp_price(self, side: str, entry_price: float) -> float:
         """
         Calculate the take profit price based on the side and entry price.
 
@@ -28,6 +29,7 @@ class Strategy:
         Returns:
             float: The take profit price adjusted based on the configured take profit percentage and lot size filter.
         """
+
         if side.upper() == 'BUY':
             # Calculate take profit price for SHORT position
             order_price = entry_price * (1 - self.conf_tp_perc)
@@ -38,7 +40,7 @@ class Strategy:
         order_price = Strategy.round_to_tick_size(order_price, self.lot_size_filter)
         return order_price
 
-    def get_sl_price(self, side: str, entry_price: float) -> float:
+    def get_sl_price(self, counter_side: str, entry_price: float) -> float:
         """
         Calculate the stop loss price based on the side and entry price.
 
@@ -49,10 +51,10 @@ class Strategy:
         Returns:
             float: The stop loss price adjusted based on the configured stop loss percentage and lot size filter.
         """
-        if side.upper() == 'BUY':
+        if counter_side.upper() == 'BUY':
             # Calculate stop loss price for SHORT position
             order_price = entry_price * (1 + self.conf_sl_perc)
-        elif side.upper() == 'SELL':
+        elif counter_side.upper() == 'SELL':
             # Calculate stop loss price for LONG position
             order_price = entry_price * (1 - self.conf_sl_perc)
         # Adjust price based on lot size filter
@@ -73,7 +75,7 @@ class Strategy:
         """
         if side.upper() == 'BUY':
             # Calculate stop loss price for SHORT position
-            order_price = self.drag_long_stop_loss(float(entry_price), float(current_price))
+            order_price = self.drag_short_stop_loss(float(entry_price), float(current_price))
         elif side.upper() == 'SELL':
             # Calculate stop loss price for LONG position
             order_price = self.drag_long_stop_loss(float(entry_price), float(current_price))
@@ -84,7 +86,7 @@ class Strategy:
         
         # Adjust price based on lot size filter
         order_price = Strategy.round_to_tick_size(order_price, self.lot_size_filter)
-        self.previous_sl_price = order_price
+        #self.previous_sl_price = order_price
         return order_price
 
     @staticmethod
@@ -98,10 +100,8 @@ class Strategy:
         # Round the price to the nearest tick size and adjust the precision
         rounded_price = round(price / tick_size) * tick_size
         adjusted_price = round(rounded_price * scale_factor) / scale_factor
-
         return adjusted_price
 
-    
 
     def drag_long_stop_loss(self, entry_price: float, current_price: float) -> float:
 
@@ -120,7 +120,14 @@ class Strategy:
             self.max_price = current_price
 
             # Don't ask me about 1.85, it just felt like the right number
-            self.previous_sl_price = (price_divergence_float * 1.85) + self.previous_sl_price
+            sl_order_price = (price_divergence_float * 1.85) + self.previous_sl_price
+
+            # Check if the current stop loss price does not surpass current_price + tolerance
+            #  Let's say a symbol is trading at 2.00, if we set a min gap of 0.01, then SL price cannot be higher than 1.98.
+            if sl_order_price > ((1-self.conf_sl_min_gap) * current_price):
+                return 0.0
+            
+            self.previous_sl_price = sl_order_price
             return self.previous_sl_price
         return 0.0
 
@@ -142,6 +149,12 @@ class Strategy:
             self.max_price = current_price
 
             # Don't ask me about 1.85, it just felt like the right number
-            self.previous_sl_price = (price_divergence_float * 1.85) + self.previous_sl_price
+            sl_order_price = (price_divergence_float * 1.85) + self.previous_sl_price
+
+            # Check if the current stop loss price does not surpass current_price + tolerance
+            #  Let's say a symbol is trading at 2.00, if we set a min gap of 0.01, then SL price cannot be lower than 2.02.
+            if sl_order_price < ((1+self.conf_sl_min_gap) * current_price):
+                return 0.0
+            self.previous_sl_price = sl_order_price
             return self.previous_sl_price
         return 0.0

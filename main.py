@@ -32,7 +32,8 @@ client = TelegramClient(
 
 # Extract user IDs from YAML data
 user_ids = config.get_config_value("telegram_api").get("user_ids")
-print(user_ids)
+channel_ids = config.get_config_value("telegram_api").get("channel_ids")
+#print(user_ids)
 
 # chats=("GroupName", "Group2")
 
@@ -50,7 +51,7 @@ async def my_event_handler(event):
 
     if (
         (hasattr(event.message.peer_id, 'user_id') and event.message.peer_id.user_id in user_ids)
-        #or (hasattr(event.message.peer_id, 'channel_id') and event.message.peer_id.channel_id in channel_ids)
+        or (hasattr(event.message.peer_id, 'channel_id') and event.message.peer_id.channel_id in channel_ids)
     ):
         # use or for channels
         # or (event.message.peer_id.channel_id and event.message.peer_id.channel_id in channel_ids):

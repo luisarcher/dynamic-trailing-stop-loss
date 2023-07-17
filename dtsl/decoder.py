@@ -21,6 +21,12 @@ class Decoder:
             if trading_pair_match:
                 trading_pair = trading_pair_match.group().replace(" ", "")
 
+            # Detects trade results and avoid entering a trade when results are published
+            if "ACHIEVED" in message \
+                or "Achieved" in message \
+                or "achieved" in message:
+                return None
+
             # Parse trade type
             if "LONG" in message \
                 or "Long" in message \
@@ -32,6 +38,7 @@ class Decoder:
                 trade_type = "SHORT"
 
             if trading_pair == "" \
+                or trading_pair is None\
                 or trade_type == "":
                 return None
             signal = Signal(trading_pair, trade_type)

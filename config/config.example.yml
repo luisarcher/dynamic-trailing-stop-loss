@@ -14,6 +14,10 @@ binance_api:
   available_wallet_perc: 0.5
   leverage: 9
 
+strategy:
+  place_tp_order: false
+  min_tsl_gap: 0.1
+
 # Logging settings (currently not used)
 logging:
   level: INFO
