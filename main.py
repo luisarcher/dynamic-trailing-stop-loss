@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import threading
 from telethon import TelegramClient, events
@@ -10,9 +11,11 @@ from dtsl.exchange_mediator import ExchangeMediator
 from dtsl.models.signal import Signal
 
 
-
 # Initializing...
 config = Config()
+
+logger=logging.getLogger(__name__)
+
 decoder = Decoder()
 exchange_mediator = ExchangeMediator(BinanceExchange())
 exchange_mediator.start()
@@ -43,11 +46,13 @@ async def my_event_handler(event):
     # Put the event in the message queue
     #with queue_lock:
         #message_queue.put(event)
-    #sender = await event.get_sender()
+    sender = await event.get_sender()
     #print(sender)
     #print(sender.username)
 
     #if (event.message.peer_id.user_id and event.message.peer_id.user_id in user_ids):
+
+    logger.info('Received Telegram message:' + str(event) + "from sender: " + str(sender))
 
     if (
         (hasattr(event.message.peer_id, 'user_id') and event.message.peer_id.user_id in user_ids)
@@ -55,7 +60,7 @@ async def my_event_handler(event):
     ):
         # use or for channels
         # or (event.message.peer_id.channel_id and event.message.peer_id.channel_id in channel_ids):
-        print(event)
+        logger.info('Handling message: ' + str(event))
         signal: Signal = decoder.decode(event.message.message)
         if signal is None:
             return

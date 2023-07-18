@@ -105,41 +105,35 @@ class Trade:
             )
         except Exception as e:
             logger.error(f'[ERROR] Exception updating stop loss')
+            logger.error('Trade Info:' + self)
             logger.exception(e)
+            
         
-
     def __repr__(self) -> str:
-        return f'{self.symbol}'
+        return f"Symbol: {self.symbol}\n" \
+              + f"Qty: {self.position_size}\n" \
+              + f"Entry: {self.entry_price}\n" \
+              + f"Mark: {self.mark_price}\n" \
+              + f"uPnL: {self.unrealized_pnl}\n" \
+              + f"Side: {self.side_LS}"
     
-    
-    @staticmethod
-    def get_buy_sell_position_side(long_short_side: str):
-        # Parse trade type
-        if 'LONG' in long_short_side.upper():
-            return 'BUY'
-        elif 'SHORT' in long_short_side.upper():
-            return 'SELL'
-    
-
-    @staticmethod
-    def get_counter_LS_side(side_ls: str):
-        if 'LONG' in side_ls.upper():
-            return 'SHORT'
-        elif 'SHORT' in side_ls.upper():
-            return 'LONG'
+    def __str__(self) -> str:
+        return self.__repr__()
 
     def update_position(self, position_size, leverage, entry_price, mark_price, unrealized_pnl, position_side):
         self.position_size = position_size
+
+        if position_size == 0.0: 
+            return
+        
         self.leverage = leverage
         self.entry_price = float(entry_price)
         self.mark_price = mark_price
         self.unrealized_pnl = unrealized_pnl
         self.side_LS = Trade.determine_position_side(position_side, position_size)
 
-        if position_size == 0.0: 
-            return
         
-        if self.tp_order is None and self.config_place_tp_order:
+        if self.tp_order is None and self.config_place_tp_order is True:
             self.place_tp_limit_order()
 
         self.update_stop_loss_order()
@@ -191,3 +185,20 @@ class Trade:
         else:
             position_direction = position_side
         return position_direction
+    
+    @staticmethod
+    def get_buy_sell_position_side(long_short_side: str):
+        # Parse trade type
+        if 'LONG' in long_short_side.upper():
+            return 'BUY'
+        elif 'SHORT' in long_short_side.upper():
+            return 'SELL'
+        else:
+            return 'UNKNOWN BUY SELL'
+
+    @staticmethod
+    def get_counter_LS_side(side_ls: str):
+        if 'LONG' in side_ls.upper():
+            return 'SHORT'
+        elif 'SHORT' in side_ls.upper():
+            return 'LONG'
