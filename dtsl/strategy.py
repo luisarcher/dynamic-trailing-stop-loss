@@ -11,6 +11,7 @@ class Strategy:
         # 2:1 R2RR
         self.conf_tp_perc = 0.04 # 5%
         self.conf_sl_perc = 0.02 # 2.5%
+        self.conf_sl_multiplier = 1.5
         #self.conf_min_tsl = 0.0025
         self.conf_sl_min_gap = 0.0035
 
@@ -120,7 +121,7 @@ class Strategy:
             self.max_price = current_price
 
             # Don't ask me about 1.85, it just felt like the right number
-            sl_order_price = (price_divergence_float * 1.85) + self.previous_sl_price
+            sl_order_price = (price_divergence_float * self.conf_sl_multiplier) + self.previous_sl_price
 
             # Check if the current stop loss price does not surpass current_price + tolerance
             #  Let's say a symbol is trading at 2.00, if we set a min gap of 0.01, then SL price cannot be higher than 1.98.
@@ -149,7 +150,7 @@ class Strategy:
             self.max_price = current_price
 
             # Don't ask me about 1.85, it just felt like the right number
-            sl_order_price = (price_divergence_float * 1.85) + self.previous_sl_price
+            sl_order_price = (price_divergence_float * self.conf_sl_multiplier) + self.previous_sl_price
 
             # Check if the current stop loss price does not surpass current_price + tolerance
             #  Let's say a symbol is trading at 2.00, if we set a min gap of 0.01, then SL price cannot be lower than 2.02.

@@ -16,7 +16,7 @@ class Decoder:
             # Parse trading pair
             trading_pair = ""
             trade_type = ""
-            trading_pair_regex = re.compile(r"[A-Za-z]{1,5}\s*/\s*USDT")
+            trading_pair_regex = re.compile(r"[A-Z]{1,5}\s*\/?\s*USDT")
             trading_pair_match = trading_pair_regex.search(message)
             if trading_pair_match:
                 trading_pair = trading_pair_match.group().replace(" ", "")

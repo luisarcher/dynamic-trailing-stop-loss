@@ -33,6 +33,22 @@ class DecoderTestSuite(unittest.TestCase):
         self.assertEqual(signal.ticker, 'BTCUSDT')
         self.assertEqual(signal.trade_type, 'SHORT')
 
+    def test_scalping_300(self):
+        # Read the signal message from the fixture file
+        with open(project_root_path + '/tests/fixtures/scalping_300.txt', 'r', encoding='utf-8') as file:
+            signal_message = file.read()
+
+        # Create an instance of the Decoder class
+        decoder = Decoder()
+
+        # Call the decode() method with the signal message
+        signal: Signal = decoder.decode(signal_message)
+
+        # Perform your assertions based on the expected results
+        self.assertEqual(signal.trading_pair, 'EGLDUSDT')
+        self.assertEqual(signal.ticker, 'EGLDUSDT')
+        self.assertEqual(signal.trade_type, 'LONG')
+
 
 if __name__ == '__main__':
     unittest.main()
