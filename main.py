@@ -52,7 +52,7 @@ async def my_event_handler(event):
 
     #if (event.message.peer_id.user_id and event.message.peer_id.user_id in user_ids):
 
-    logger.info('Received Telegram message:' + str(event) + "from sender: " + str(sender))
+    logger.info('Received Telegram message:' + str(event.message.message[:10]) + "... from sender: " + str(sender))
 
     if (
         (hasattr(event.message.peer_id, 'user_id') and event.message.peer_id.user_id in user_ids)
@@ -60,7 +60,7 @@ async def my_event_handler(event):
     ):
         # use or for channels
         # or (event.message.peer_id.channel_id and event.message.peer_id.channel_id in channel_ids):
-        logger.info('Handling message: ' + str(event))
+        logger.info('Handling message: ' + str(event.message.message[:10]))
         signal: Signal = decoder.decode(event.message.message)
         if signal is None:
             return
