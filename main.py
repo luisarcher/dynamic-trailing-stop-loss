@@ -36,9 +36,9 @@ client = TelegramClient(
 # Extract user IDs from YAML data
 user_ids = config.get_config_value("telegram_api").get("user_ids")
 channel_ids = config.get_config_value("telegram_api").get("channel_ids")
-#print(user_ids)
 
-# chats=("GroupName", "Group2")
+logger.info('Accepting messages from users: '    + str(user_ids))
+logger.info('Accepting messages from channels: ' + str(channel_ids))
 
 # Register the event handler
 @client.on(events.NewMessage())
