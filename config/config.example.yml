@@ -17,6 +17,7 @@ binance_api:
 strategy:
   place_tp_order: false
   min_tsl_gap: 0.1
+  stop_loss_multiplier: 1.75
 
 # Logging settings (currently not used)
 logging:
